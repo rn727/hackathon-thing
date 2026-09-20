@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import ShowMoreButton from './ShowMoreButton.jsx'
+import { todayString, taskDetails, isOverdue, canDeleteTask, statusLabel, sortTasks, PAGE_SIZE } from './taskUtils.js'
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -6,44 +8,48 @@ const FILTERS = [
   { key: 'available', label: 'Available' },
   { key: 'claimed', label: 'Claimed' },
   { key: 'submitted', label: 'Submitted' },
-  { key: 'approved', label: 'Approved' },
+  { key: 'approved', label: 'Done' }, // stored status is 'approved'
   { key: 'rejected', label: 'Rejected' },
 ]
 
-// 今日の日付を 'YYYY-MM-DD' で返す(ローカル時間)
-function todayString() {
-  const d = new Date()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${m}-${day}`
-}
-
-// 期限切れ = 期限が過ぎていて、まだ子が提出していない(available / claimed)タスク
-function isOverdue(task, today) {
-  return !!task.dueDate && task.dueDate < today &&
-    (task.status === 'available' || task.status === 'claimed')
-}
-
-function OverdueActions({ task, today, onExtend, onReject }) {
+// Buttons shown under a task row:
+//   - overdue tasks: pick a new due date and Extend
+//   - deletable tasks (unclaimed, or overdue): red X button to delete the task
+function TaskActions({ task, overdue, deletable, today, onExtend, onDelete }) {
   const [newDate, setNewDate] = useState('')
-  const valid = newDate >= today && newDate !== ''
+  const valid = newDate !== '' && newDate >= today
+
+  const handleDelete = () => {
+    const message = task.status === 'claimed'
+      ? `"${task.title}" is already claimed by the kid. Delete it anyway? This cannot be undone.`
+      : `Delete "${task.title}"? This cannot be undone.`
+    if (window.confirm(message)) onDelete(task.id)
+  }
 
   return (
     <div className="p-overdue-actions">
-      <input type="date" value={newDate} min={today} onChange={(e) => setNewDate(e.target.value)} />
-      <button type="button" className="p-extend" disabled={!valid}
-        onClick={() => { onExtend(task.id, newDate); setNewDate('') }}>
-        Extend
-      </button>
-      <button type="button" className="p-reject" onClick={() => onReject(task.id)}>
-        Reject
-      </button>
+      {overdue && (
+        <>
+          <input type="date" value={newDate} min={today} onChange={(e) => setNewDate(e.target.value)} />
+          <button type="button" className="p-extend" disabled={!valid}
+            onClick={() => { onExtend(task.id, newDate); setNewDate('') }}>
+            Extend
+          </button>
+        </>
+      )}
+      {deletable && (
+        <button type="button" className="p-delete p-icon" onClick={handleDelete}
+          aria-label="Delete task" title="Delete task">
+          &#10005;
+        </button>
+      )}
     </div>
   )
 }
 
-export default function TaskList({ tasks, onExtend, onReject }) {
+export default function TaskList({ tasks, onExtend, onDelete }) {
   const [filter, setFilter] = useState('all')
+  const [shown, setShown] = useState(PAGE_SIZE) // how many rows are visible
   const today = todayString()
 
   const matches = (t, key) => {
@@ -52,7 +58,7 @@ export default function TaskList({ tasks, onExtend, onReject }) {
     return t.status === key
   }
   const count = (key) => tasks.filter((t) => matches(t, key)).length
-  const visible = tasks.filter((t) => matches(t, filter))
+  const visible = sortTasks(tasks.filter((t) => matches(t, filter)))
 
   return (
     <section className="p-card">
@@ -64,7 +70,7 @@ export default function TaskList({ tasks, onExtend, onReject }) {
             key={f.key}
             type="button"
             className={`p-tab ${filter === f.key ? 'active' : ''} ${f.key === 'overdue' && count('overdue') > 0 ? 'alert' : ''}`}
-            onClick={() => setFilter(f.key)}
+            onClick={() => { setFilter(f.key); setShown(PAGE_SIZE) }} // back to the first page
           >
             {f.label} <span className="p-tab-count">{count(f.key)}</span>
           </button>
@@ -73,29 +79,41 @@ export default function TaskList({ tasks, onExtend, onReject }) {
 
       {visible.length === 0 && <p className="p-muted">No tasks here.</p>}
       <ul className="p-list p-task-list">
-        {visible.map((t) => {
+        {visible.slice(0, shown).map((t) => {
           const overdue = isOverdue(t, today)
+          const deletable = canDeleteTask(t, today)
           return (
             <li key={t.id}>
               <div className="p-task-row">
                 <span>
                   {t.title}
                   <span className={`p-due ${overdue ? 'overdue' : ''}`}>
-                    {t.dueDate ? `Due ${t.dueDate}${overdue ? ' (overdue)' : ''}` : 'No due date'}
+                    {taskDetails(t)}{overdue ? ' (overdue)' : ''}
                   </span>
                 </span>
                 <span className="p-row-right">
                   <span className="p-reward">${t.reward}</span>
-                  <span className={`p-badge ${t.status}`}>{t.status}</span>
+                  <span className={`p-badge ${t.status}`}>{statusLabel(t.status)}</span>
                 </span>
               </div>
-              {overdue && (
-                <OverdueActions task={t} today={today} onExtend={onExtend} onReject={onReject} />
+              {(overdue || deletable) && (
+                <TaskActions
+                  task={t}
+                  overdue={overdue}
+                  deletable={deletable}
+                  today={today}
+                  onExtend={onExtend}
+                  onDelete={onDelete}
+                />
               )}
             </li>
           )
         })}
       </ul>
+      <ShowMoreButton
+        remaining={visible.length - shown}
+        onClick={() => setShown((n) => n + PAGE_SIZE)}
+      />
     </section>
   )
 }
