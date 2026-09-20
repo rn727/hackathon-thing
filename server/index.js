@@ -1,28 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const { Configuration, PlaidApi, PlaidEnvironments } = require("plaid");
 
+// necessary before to make plaid.js work
 dotenv.config();
 
 const app = express();
+const plaidClient = require("./plaid");
 
 app.use(cors());
 app.use(express.json());
-
-const configuration = new Configuration({
-  basePath: PlaidEnvironments.sandbox,
-  baseOptions: {
-    headers: {
-      "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID,
-      "PLAID-SECRET": process.env.PLAID_SECRET,
-    }
-  }
-});
-
-const plaidClient = new PlaidApi(configuration);
-
-const PORT = process.env.PORT || 8000
 
 let accessToken = null;
 
@@ -32,6 +19,7 @@ app.get("/", (req, res) => {
   });
 });
 
+// connecting with plaid
 app.post("/api/create-link-token", async (req, res) => {
   try {
     const request = {
@@ -55,11 +43,12 @@ app.post("/api/create-link-token", async (req, res) => {
   }
 });
 
+// allowing frontend to talk with backend and plaid about plaid related matters
 app.post("/api/exchange-public-token", async (req, res) => {
   try {
     const public_token = req.body;
 
-    const response = await plaidClient.itemPublicTokenExchange({ public_token: public_token });
+    const response = await plaidClient.itemPublicTokenExchange({ public_token });
 
     accessToken = response.data.access_token;
 
@@ -71,6 +60,8 @@ app.post("/api/exchange-public-token", async (req, res) => {
     res.status(500).json({ error: "Failed to exchange public token" });
   }
 });
+
+const PORT = process.env.PORT || 8000
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
