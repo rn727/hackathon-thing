@@ -8,12 +8,15 @@ import SpendingList from './SpendingList.jsx'
 import { sampleSpending } from './parentSampleData.js'
 import './parent.css'
 
+// The Express server does every create / update / delete. This page only reads from Supabase.
+const API = 'http://localhost:8000/api/tasks'
+
 // Supabase returns numeric columns (reward, balance) as strings like "5.00".
 // Convert them to real numbers as soon as the data comes in.
 const toTask = (row) => ({ ...row, reward: Number(row.reward) })
 const toKid = (row) => ({ ...row, balance: Number(row.balance) })
 
-// Parent screen. Tasks and the kid's balance live in Supabase.
+// Parent screen. Reads tasks and the kid's balance from Supabase; changes go through the server.
 export default function ParentDashboard() {
   const [kid, setKid] = useState(null)   // the kid's row from the users table (null = none found)
   const [tasks, setTasks] = useState([])
@@ -56,25 +59,31 @@ export default function ParentDashboard() {
   const updateTask = (id, changes) =>
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...changes } : t)))
 
-  // If Supabase returned an error, log the details and throw a simple message.
-  const check = (error, message) => {
-    if (error) {
-      console.error(message, error)
-      throw new Error(message, { cause: error })
+  // Send one request to the server and return its JSON answer.
+  // If the server says no (or is not running), throw an error with a simple message.
+  async function callServer(path, method, body) {
+    let response
+    try {
+      response = await fetch(`${API}${path}`, {
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      })
+    } catch (err) {
+      console.error('Could not reach the server:', err)
+      throw new Error('Could not reach the server. Is it running?', { cause: err })
     }
-  }
 
-  // Change a task's status, but only if it currently has the status `from`.
-  // This stops the same task from being approved twice.
-  async function setStatus(id, from, to) {
-    const { data, error } = await supabase
-      .from('tasks').update({ status: to }).eq('id', id).eq('status', from).select()
-    check(error, 'Could not update the task. Please try again.')
-    if (data.length === 0) {
-      reload() // the task changed somewhere else, so refresh the screen
+    const data = await response.json().catch(() => null)
+    if (response.status === 409) {
+      reload() // the task changed somewhere else (for example, the kid), so refresh the screen
       throw new Error('This task has already changed. The list was refreshed.')
     }
-    updateTask(id, { status: to })
+    if (!response.ok) {
+      console.error('Server error:', response.status, data)
+      throw new Error(data?.error || 'Something went wrong. Please try again.')
+    }
+    return data
   }
 
   // Run one action for one task: block double clicks and show an error if it fails.
@@ -93,70 +102,37 @@ export default function ParentDashboard() {
 
   // Add a new task. If it fails, throw so CreateTaskForm shows "Could not create the task".
   const createTask = async ({ title, reward, type, duration_minutes }) => {
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({ title, reward: Number(reward), type, duration_minutes, status: 'available' })
-      .select()
-      .single()
-    if (error) {
-      console.error('Could not create the task:', error)
-      throw error
-    }
-    setTasks((prev) => [...prev, toTask(data)])
+    const task = await callServer('', 'POST', { title, reward: Number(reward), type, duration_minutes })
+    setTasks((prev) => [...prev, toTask(task)])
   }
 
-  // Approve a submitted task, in this order:
-  //   1. mark the task approved (only if it is still 'submitted')
-  //   2. add the reward to the kid's balance
-  //   3. record the payment in the transactions table
+  // Approve a submitted task. The server marks it approved, adds the reward to the
+  // kid's balance and records the payment. A second click is refused by the server.
   const approveTask = (id) =>
     runAction(id, async () => {
-      const task = tasks.find((t) => t.id === id)
-      const kidId = task?.kid_id ?? kid?.id
-      if (!task || !kidId) throw new Error('Could not find the kid for this task.')
-
-      await setStatus(id, 'submitted', 'approved')
-
-      try {
-        // Read the newest balance first, so we never add to an old number.
-        const { data: row, error: readError } = await supabase
-          .from('users').select('balance').eq('id', kidId).single()
-        check(readError, 'Could not update the balance.')
-        const newBalance = Number(row.balance) + task.reward
-
-        const { error: balanceError } = await supabase
-          .from('users').update({ balance: newBalance }).eq('id', kidId)
-        check(balanceError, 'Could not update the balance.')
-
-        const { error: transactionError } = await supabase
-          .from('transactions').insert({ amount: task.reward, kid_id: kidId })
-        check(transactionError, 'Could not record the payment.')
-
-        if (kid && kid.id === kidId) setKid({ ...kid, balance: newBalance })
-      } catch (err) {
-        // Put the task back so the parent can try again (best effort).
-        await supabase.from('tasks').update({ status: 'submitted' }).eq('id', id)
-        updateTask(id, { status: 'submitted' })
-        throw new Error(`${err.message} The task was not approved.`, { cause: err })
-      }
+      await callServer(`/${id}/approve`, 'POST')
+      updateTask(id, { status: 'approved' })
+      reload() // load the kid's new balance
     })
 
   // Ask for a redo: the task goes back to the kid as 'claimed'.
-  const requestRedo = (id) => runAction(id, () => setStatus(id, 'submitted', 'claimed'))
+  const requestRedo = (id) =>
+    runAction(id, async () => {
+      await callServer(`/${id}/redo`, 'POST')
+      updateTask(id, { status: 'claimed' })
+    })
 
   // Reject a submitted task: it is closed for good and no reward is paid.
-  const rejectTask = (id) => runAction(id, () => setStatus(id, 'submitted', 'rejected'))
+  const rejectTask = (id) =>
+    runAction(id, async () => {
+      await callServer(`/${id}/reject`, 'POST')
+      updateTask(id, { status: 'rejected' })
+    })
 
   // Delete a task nobody has claimed yet. The row is removed completely.
   const deleteTask = (id) =>
     runAction(id, async () => {
-      const { data, error } = await supabase
-        .from('tasks').delete().eq('id', id).eq('status', 'available').select()
-      check(error, 'Could not delete the task. Please try again.')
-      if (data.length === 0) {
-        reload() // someone claimed it in the meantime, so refresh the screen
-        throw new Error('This task was just claimed, so it was not deleted.')
-      }
+      await callServer(`/${id}`, 'DELETE')
       setTasks((prev) => prev.filter((t) => t.id !== id))
     })
 
