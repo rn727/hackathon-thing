@@ -7,9 +7,11 @@ dotenv.config();
 
 const app = express();
 const plaidClient = require("./plaid");
+const tasksRouter = require("./tasks");
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/tasks", tasksRouter);
 
 let accessToken = null;
 
