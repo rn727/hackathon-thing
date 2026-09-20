@@ -1,13 +1,61 @@
-import { useState } from 'react'
-import { sampleKid, sampleTasks, sampleSpending } from '../parent/parentSampleData.js'
+import { useEffect, useState } from 'react'
+import { sampleSpending } from '../parent/parentSampleData.js'
 import '../parent/parent.css'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabaseClient.js'
+
+// No login yet: the kid screen always acts as this kid (users.id in Supabase).
+const KID_ID = 2
+
 export default function ChildDashboard() {
-  const [kid] = useState(sampleKid)
-  const [tasks, setTasks] = useState(sampleTasks)
+  const [kid, setKid] = useState({ balance: 0 })
+  const [tasks, setTasks] = useState([])
+  const [error, setError] = useState('')
   const spending = sampleSpending
 
-  const claimTask = (id) => {
+  // Load the kid's balance and tasks (available ones + this kid's own) from Supabase.
+  useEffect(() => {
+    const loadData = async () => {
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('balance')
+        .eq('id', KID_ID)
+        .single()
+
+      const { data: taskRows, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .or(`status.eq.available,kid_id.eq.${KID_ID}`)
+
+      if (userError || tasksError) {
+        console.error('Could not load kid data:', userError || tasksError)
+        setError('Could not load your data')
+        return
+      }
+
+      setKid({ balance: Number(user.balance) })
+      setTasks(taskRows.map((task) => ({ ...task, reward: Number(task.reward) })))
+    }
+
+    loadData()
+  }, [])
+
+  const claimTask = async (id) => {
+    // Only claims the task if it is still 'available', so it can't be claimed twice.
+    const { data, error: claimError } = await supabase
+      .from('tasks')
+      .update({ status: 'claimed', kid_id: KID_ID })
+      .eq('id', id)
+      .eq('status', 'available')
+      .select()
+
+    if (claimError || data.length === 0) {
+      console.error('Could not claim task:', claimError)
+      setError('Could not claim the task')
+      return
+    }
+
+    setError('')
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id
@@ -44,7 +92,8 @@ export default function ChildDashboard() {
 
   <h1>Kid Dashboard</h1>
 </div>
-    
+      {error && <p>{error}</p>}
+
       <section className="p-card p-balance-card">
         <div className="p-label">Your balance</div>
         <div className="p-balance">
@@ -63,10 +112,6 @@ export default function ChildDashboard() {
               <div>
                 <h3>{task.title}</h3>
                 <p>Reward: ${task.reward.toFixed(2)}</p>
-
-                {task.dueDate && (
-                  <p>Due: {task.dueDate}</p>
-                )}
               </div>
 
               <button
@@ -90,10 +135,6 @@ export default function ChildDashboard() {
               <div>
                 <h3>{task.title}</h3>
                 <p>Reward: ${task.reward.toFixed(2)}</p>
-
-                {task.dueDate && (
-                  <p>Due: {task.dueDate}</p>
-                )}
               </div>
 
               <button

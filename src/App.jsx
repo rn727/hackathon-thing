@@ -5,7 +5,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import './App.css'
 import Home from './Home'
-import KidDashboard from './pages/KidDashboard'
+import KidDashboard from './kid/KidDashboard'
 import ParentDashboard from './parent/ParentDashboard'
 
 function App() {
