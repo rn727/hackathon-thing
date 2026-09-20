@@ -2,6 +2,7 @@ import { useState } from 'react'
 import CreateTaskForm from './CreateTaskForm.jsx'
 import SubmittedTasks from './SubmittedTasks.jsx'
 import TaskList from './TaskList.jsx'
+import { Link } from 'react-router-dom'
 import SpendingList from './SpendingList.jsx'
 import { sampleKid, sampleTasks, sampleSpending } from './parentSampleData.js'
 import './parent.css'
@@ -48,7 +49,13 @@ export default function ParentDashboard() {
 
   return (
     <div className="parent-page">
-      <h1>Parent Dashboard</h1>
+      <div className="dashboard-header">
+  <Link to="/">
+    <button className="logout-button">Log Out</button>
+  </Link>
+
+  <h1>Parent Dashboard</h1>
+</div>
 
       <section className="p-card p-balance-card">
         <div className="p-label">{kid.name}'s balance</div>
