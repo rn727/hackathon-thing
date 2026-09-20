@@ -26,7 +26,9 @@ export default function SpendingList({ spending }) {
       </ul>
       <ShowMoreButton
         remaining={sorted.length - shown}
-        onClick={() => setShown((n) => n + PAGE_SIZE)}
+        canCollapse={shown > PAGE_SIZE}
+        onMore={() => setShown((n) => n + PAGE_SIZE)}
+        onLess={() => setShown(PAGE_SIZE)}
       />
     </section>
   )

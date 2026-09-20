@@ -5,25 +5,24 @@
 //   (the UI shows 'approved' as "Done"; the stored value stays 'approved')
 //   - Parent asks for a redo on a submitted task: back to 'claimed'.
 //   - Parent rejects a submitted task (no reward): 'rejected'.
-//   - Parent deletes an unclaimed ('available') or overdue task: it is removed entirely.
+//   - Parent deletes an unclaimed ('available') task: it is removed entirely.
 // The UI shows 'approved' as "Done"; the stored value stays 'approved'.
-// task.dueDate: 'YYYY-MM-DD' string, or null if there is no due date.
 // task.type: 'completion' or 'time'.
-// task.durationMinutes: minutes the kid should spend (time-based tasks), else null.
+// task.duration_minutes: minutes the kid should spend (time-based tasks), else null.
 
 export const sampleKid = { id: 1, name: 'Sota', balance: 10 }
 
 export const sampleTasks = [
-  { id: 1, title: 'Finish Algebra Homework', reward: 5, type: 'completion', durationMinutes: null, status: 'available', dueDate: '2026-09-25' },
-  { id: 2, title: 'Read for 30 minutes', reward: 3, type: 'time', durationMinutes: 30, status: 'claimed', dueDate: '2026-09-22' },
-  { id: 3, title: 'Clean your desk', reward: 2, type: 'completion', durationMinutes: null, status: 'submitted', dueDate: '2026-09-19' },
-  { id: 4, title: 'Practice piano', reward: 4, type: 'time', durationMinutes: 45, status: 'submitted', dueDate: '2026-09-21' },
-  { id: 5, title: 'Water the plants', reward: 1, type: 'completion', durationMinutes: null, status: 'approved', dueDate: '2026-09-18' },
-  { id: 6, title: 'Take out the trash', reward: 2, type: 'completion', durationMinutes: null, status: 'available', dueDate: '2026-09-15' },
-  { id: 7, title: 'Math worksheet', reward: 3, type: 'completion', durationMinutes: null, status: 'claimed', dueDate: '2026-09-16' },
-  { id: 8, title: 'Set the dinner table', reward: 1, type: 'completion', durationMinutes: null, status: 'available', dueDate: '2026-09-27' },
-  { id: 9, title: 'Practice soccer drills', reward: 3, type: 'time', durationMinutes: 60, status: 'claimed', dueDate: '2026-09-26' },
-  { id: 10, title: 'Fold the laundry', reward: 2, type: 'completion', durationMinutes: null, status: 'approved', dueDate: '2026-09-17' },
+  { id: 1, title: 'Finish Algebra Homework', reward: 5, type: 'completion', duration_minutes: null, status: 'available' },
+  { id: 2, title: 'Read for 30 minutes', reward: 3, type: 'time', duration_minutes: 30, status: 'claimed' },
+  { id: 3, title: 'Clean your desk', reward: 2, type: 'completion', duration_minutes: null, status: 'submitted' },
+  { id: 4, title: 'Practice piano', reward: 4, type: 'time', duration_minutes: 45, status: 'submitted' },
+  { id: 5, title: 'Water the plants', reward: 1, type: 'completion', duration_minutes: null, status: 'approved' },
+  { id: 6, title: 'Take out the trash', reward: 2, type: 'completion', duration_minutes: null, status: 'available' },
+  { id: 7, title: 'Math worksheet', reward: 3, type: 'completion', duration_minutes: null, status: 'claimed' },
+  { id: 8, title: 'Set the dinner table', reward: 1, type: 'completion', duration_minutes: null, status: 'available' },
+  { id: 9, title: 'Practice soccer drills', reward: 3, type: 'time', duration_minutes: 60, status: 'claimed' },
+  { id: 10, title: 'Fold the laundry', reward: 2, type: 'completion', duration_minutes: null, status: 'approved' },
 ]
 
 // Placeholder spending until Plaid Sandbox transactions are connected.
