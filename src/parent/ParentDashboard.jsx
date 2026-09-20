@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import CreateTaskForm from './CreateTaskForm.jsx'
 import SubmittedTasks from './SubmittedTasks.jsx'
 import TaskList from './TaskList.jsx'
@@ -11,7 +11,7 @@ import './parent.css'
 // Day 2: 下の「TODO(Day 2)」の3か所をSupabase / Plaidの呼び出しに置き換える。
 export default function ParentDashboard() {
   const [kid, setKid] = useState(sampleKid)           // TODO(Day 2): Supabaseから取得
-  const [tasks, setTasks] = useState(sampleTasks)     // TODO(Day 2): Supabaseから取得
+  const [tasks, setTasks] = useState([])
   const spending = sampleSpending                     // TODO(Day 2): Plaid Sandboxから取得
 
   const createTask = ({ title, reward, type, dueDate }) => {
@@ -46,6 +46,17 @@ export default function ParentDashboard() {
   }
 
   const submitted = tasks.filter((t) => t.status === 'submitted')
+
+  useEffect(() => {
+  fetch('http://localhost:8000/api/tasks')
+    .then((response) => response.json())
+    .then((data) => {
+      setTasks(data)
+    })
+    .catch((error) => {
+      console.error('Error loading tasks:', error)
+    })
+}, [])
 
   return (
     <div className="parent-page">
