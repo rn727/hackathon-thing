@@ -11,19 +11,17 @@ const FILTERS = [
   { key: 'rejected', label: 'Rejected' },
 ]
 
-// Red X button under a task row. Only tasks nobody has claimed yet can be deleted.
+// Red X button at the end of a task row. Only tasks nobody has claimed yet can be deleted.
 function DeleteButton({ task, disabled, onDelete }) {
   const handleDelete = () => {
     if (window.confirm(`Delete "${task.title}"? This cannot be undone.`)) onDelete(task.id)
   }
 
   return (
-    <div className="p-overdue-actions">
-      <button type="button" className="p-delete p-icon" disabled={disabled} onClick={handleDelete}
-        aria-label="Delete task" title="Delete task">
-        &#10005;
-      </button>
-    </div>
+    <button type="button" className="p-delete p-icon" disabled={disabled} onClick={handleDelete}
+      aria-label="Delete task" title="Delete task">
+      &#10005;
+    </button>
   )
 }
 
@@ -64,9 +62,9 @@ export default function TaskList({ tasks, disabled, onDelete }) {
               <span className="p-row-right">
                 <span className="p-reward">${t.reward}</span>
                 <span className={`p-badge ${t.status}`}>{statusLabel(t.status)}</span>
+                {canDeleteTask(t) && <DeleteButton task={t} disabled={disabled} onDelete={onDelete} />}
               </span>
             </div>
-            {canDeleteTask(t) && <DeleteButton task={t} disabled={disabled} onDelete={onDelete} />}
           </li>
         ))}
       </ul>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function CreateTaskForm({ onCreate }) {
   const [title, setTitle] = useState('')
@@ -9,6 +9,13 @@ export default function CreateTaskForm({ onCreate }) {
   const [errors, setErrors] = useState({})       // per-field validation messages
   const [submitError, setSubmitError] = useState('') // set if onCreate itself fails
   const [success, setSuccess] = useState(false)
+
+  // Hide the "Task created." message by itself after 3 seconds.
+  useEffect(() => {
+    if (!success) return
+    const timer = setTimeout(() => setSuccess(false), 3000)
+    return () => clearTimeout(timer)
+  }, [success])
 
   const hasErrors = Object.values(errors).some(Boolean)
 
