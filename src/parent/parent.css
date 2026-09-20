@@ -1,4 +1,13 @@
-/* Everything is scoped under .parent-page so it cannot clash with other people's CSS. */
+/* すべて .parent-page の中だけに効く。他の人のCSSとぶつからないようにしてある。 */
+
+.dashboard-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
 .parent-page {
   box-sizing: border-box;
   max-width: 480px;

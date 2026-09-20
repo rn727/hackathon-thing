@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import CreateTaskForm from './CreateTaskForm.jsx'
 import SubmittedTasks from './SubmittedTasks.jsx'
 import TaskList from './TaskList.jsx'
+import { Link } from 'react-router-dom'
 import SpendingList from './SpendingList.jsx'
 import { sampleKid, sampleTasks, sampleSpending } from './parentSampleData.js'
 import { todayString, canDeleteTask } from './taskUtils.js'
@@ -10,9 +11,9 @@ import './parent.css'
 // Parent screen. On Day 1 it runs on fake data held in useState.
 // Day 2: replace the TODO(Day 2) spots below with Supabase / Plaid calls.
 export default function ParentDashboard() {
-  const [kid, setKid] = useState(sampleKid)        // TODO(Day 2): load from Supabase
-  const [tasks, setTasks] = useState(sampleTasks)  // TODO(Day 2): load from Supabase
-  const spending = sampleSpending                  // TODO(Day 2): load from Plaid Sandbox
+  const [kid, setKid] = useState(sampleKid)           // TODO(Day 2): Supabaseから取得
+  const [tasks, setTasks] = useState([])
+  const spending = sampleSpending                     // TODO(Day 2): Plaid Sandboxから取得
 
   // Small helper: change one task's fields by id.
   const updateTask = (id, changes) =>
@@ -73,9 +74,26 @@ export default function ParentDashboard() {
   // Derived value: recomputed on every render, so it never gets out of date.
   const submitted = tasks.filter((t) => t.status === 'submitted')
 
+  useEffect(() => {
+  fetch('http://localhost:8000/api/tasks')
+    .then((response) => response.json())
+    .then((data) => {
+      setTasks(data)
+    })
+    .catch((error) => {
+      console.error('Error loading tasks:', error)
+    })
+}, [])
+
   return (
     <div className="parent-page">
-      <h1>Parent Dashboard</h1>
+      <div className="dashboard-header">
+  <Link to="/">
+    <button className="logout-button">Log Out</button>
+  </Link>
+
+  <h1>Parent Dashboard</h1>
+</div>
 
       <section className="p-card p-balance-card">
         <div className="p-label">{kid.name}'s balance</div>
