@@ -1,0 +1,54 @@
+/* すべて .parent-page の中だけに効く。他の人のCSSとぶつからないようにしてある。 */
+.parent-page {
+  box-sizing: border-box;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+  min-height: 100vh;
+  background: #f4f6fb;
+  color: #1f2937;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  text-align: left;
+}
+.parent-page *, .parent-page *::before, .parent-page *::after { box-sizing: border-box; }
+.parent-page h1 { font-size: 1.4rem; margin: 8px 0 14px; color: #1f2937; }
+.parent-page h2 { font-size: 1.05rem; margin: 0 0 10px; color: #1f2937; }
+.parent-page .p-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); display: block; }
+.parent-page .p-balance-card { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; }
+.parent-page .p-label { opacity: .85; font-size: .85rem; }
+.parent-page .p-balance { font-size: 2.2rem; font-weight: 700; }
+.parent-page input, .parent-page select { width: 100%; padding: 10px; margin-bottom: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; background: #fff; color: #1f2937; }
+.parent-page .p-form-row { display: flex; gap: 8px; }
+.parent-page button { font-size: .9rem; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #1f2937; cursor: pointer; }
+.parent-page button.p-primary { width: 100%; background: #4f46e5; color: #fff; border: none; padding: 10px; font-size: 1rem; }
+.parent-page button.p-approve { background: #16a34a; color: #fff; border: none; }
+.parent-page button.p-reject { background: #dc2626; color: #fff; border: none; }
+.parent-page .p-list { list-style: none; margin: 0; padding: 0; }
+.parent-page .p-list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #eef0f4; }
+.parent-page .p-list li:last-child { border-bottom: none; }
+.parent-page .p-row-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.parent-page .p-reward { color: #16a34a; font-weight: 600; }
+.parent-page .p-spend { color: #dc2626; font-weight: 600; }
+.parent-page .p-muted { color: #6b7280; margin: 0; }
+.parent-page .p-small { font-size: .8rem; }
+.parent-page .p-badge { font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: #e5e7eb; }
+.parent-page .p-badge.available { background: #dbeafe; }
+.parent-page .p-badge.claimed { background: #fef3c7; }
+.parent-page .p-badge.submitted { background: #ede9fe; }
+.parent-page .p-badge.approved { background: #dcfce7; }
+.parent-page .p-field-label { display: block; font-size: .8rem; color: #6b7280; margin-bottom: 8px; }
+.parent-page .p-field-label input { margin-top: 4px; margin-bottom: 0; }
+.parent-page .p-due { display: block; font-size: .78rem; color: #6b7280; margin-top: 2px; }
+.parent-page .p-due.overdue { color: #dc2626; font-weight: 600; }
+.parent-page .p-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.parent-page button.p-tab { padding: 5px 10px; font-size: .8rem; border-radius: 999px; background: #f3f4f6; border: 1px solid transparent; }
+.parent-page button.p-tab.active { background: #4f46e5; color: #fff; }
+.parent-page .p-tab-count { opacity: .7; margin-left: 2px; }
+.parent-page .p-task-list li { display: block; }
+.parent-page .p-task-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.parent-page .p-overdue-actions { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+.parent-page .p-overdue-actions input { margin: 0; flex: 1; min-width: 0; padding: 6px 8px; font-size: .9rem; }
+.parent-page button.p-extend { background: #4f46e5; color: #fff; border: none; }
+.parent-page button.p-extend:disabled { background: #c7c9f0; cursor: not-allowed; }
+.parent-page button.p-tab.alert:not(.active) { background: #fee2e2; color: #b91c1c; }
+.parent-page .p-badge.rejected { background: #e5e7eb; color: #6b7280; }
