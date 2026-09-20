@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import ShowMoreButton from './ShowMoreButton.jsx'
-import { todayString, taskDetails, isOverdue, canDeleteTask, statusLabel, sortTasks, PAGE_SIZE } from './taskUtils.js'
+import { taskDetails, canDeleteTask, statusLabel, sortTasks, PAGE_SIZE } from './taskUtils.js'
 
 const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'overdue', label: 'Overdue' },
   { key: 'available', label: 'Available' },
   { key: 'claimed', label: 'Claimed' },
   { key: 'submitted', label: 'Submitted' },
@@ -12,51 +11,27 @@ const FILTERS = [
   { key: 'rejected', label: 'Rejected' },
 ]
 
-// Buttons shown under a task row:
-//   - overdue tasks: pick a new due date and Extend
-//   - deletable tasks (unclaimed, or overdue): red X button to delete the task
-function TaskActions({ task, overdue, deletable, today, onExtend, onDelete }) {
-  const [newDate, setNewDate] = useState('')
-  const valid = newDate !== '' && newDate >= today
-
+// Red X button under a task row. Only tasks nobody has claimed yet can be deleted.
+function DeleteButton({ task, disabled, onDelete }) {
   const handleDelete = () => {
-    const message = task.status === 'claimed'
-      ? `"${task.title}" is already claimed by the kid. Delete it anyway? This cannot be undone.`
-      : `Delete "${task.title}"? This cannot be undone.`
-    if (window.confirm(message)) onDelete(task.id)
+    if (window.confirm(`Delete "${task.title}"? This cannot be undone.`)) onDelete(task.id)
   }
 
   return (
     <div className="p-overdue-actions">
-      {overdue && (
-        <>
-          <input type="date" value={newDate} min={today} onChange={(e) => setNewDate(e.target.value)} />
-          <button type="button" className="p-extend" disabled={!valid}
-            onClick={() => { onExtend(task.id, newDate); setNewDate('') }}>
-            Extend
-          </button>
-        </>
-      )}
-      {deletable && (
-        <button type="button" className="p-delete p-icon" onClick={handleDelete}
-          aria-label="Delete task" title="Delete task">
-          &#10005;
-        </button>
-      )}
+      <button type="button" className="p-delete p-icon" disabled={disabled} onClick={handleDelete}
+        aria-label="Delete task" title="Delete task">
+        &#10005;
+      </button>
     </div>
   )
 }
 
-export default function TaskList({ tasks, onExtend, onDelete }) {
+export default function TaskList({ tasks, disabled, onDelete }) {
   const [filter, setFilter] = useState('all')
   const [shown, setShown] = useState(PAGE_SIZE) // how many rows are visible
-  const today = todayString()
 
-  const matches = (t, key) => {
-    if (key === 'all') return true
-    if (key === 'overdue') return isOverdue(t, today)
-    return t.status === key
-  }
+  const matches = (t, key) => key === 'all' || t.status === key
   const count = (key) => tasks.filter((t) => matches(t, key)).length
   const visible = sortTasks(tasks.filter((t) => matches(t, filter)))
 
@@ -69,7 +44,7 @@ export default function TaskList({ tasks, onExtend, onDelete }) {
           <button
             key={f.key}
             type="button"
-            className={`p-tab ${filter === f.key ? 'active' : ''} ${f.key === 'overdue' && count('overdue') > 0 ? 'alert' : ''}`}
+            className={`p-tab ${filter === f.key ? 'active' : ''}`}
             onClick={() => { setFilter(f.key); setShown(PAGE_SIZE) }} // back to the first page
           >
             {f.label} <span className="p-tab-count">{count(f.key)}</span>
@@ -79,40 +54,27 @@ export default function TaskList({ tasks, onExtend, onDelete }) {
 
       {visible.length === 0 && <p className="p-muted">No tasks here.</p>}
       <ul className="p-list p-task-list">
-        {visible.slice(0, shown).map((t) => {
-          const overdue = isOverdue(t, today)
-          const deletable = canDeleteTask(t, today)
-          return (
-            <li key={t.id}>
-              <div className="p-task-row">
-                <span>
-                  {t.title}
-                  <span className={`p-due ${overdue ? 'overdue' : ''}`}>
-                    {taskDetails(t)}{overdue ? ' (overdue)' : ''}
-                  </span>
-                </span>
-                <span className="p-row-right">
-                  <span className="p-reward">${t.reward}</span>
-                  <span className={`p-badge ${t.status}`}>{statusLabel(t.status)}</span>
-                </span>
-              </div>
-              {(overdue || deletable) && (
-                <TaskActions
-                  task={t}
-                  overdue={overdue}
-                  deletable={deletable}
-                  today={today}
-                  onExtend={onExtend}
-                  onDelete={onDelete}
-                />
-              )}
-            </li>
-          )
-        })}
+        {visible.slice(0, shown).map((t) => (
+          <li key={t.id}>
+            <div className="p-task-row">
+              <span>
+                {t.title}
+                {taskDetails(t) && <span className="p-due">{taskDetails(t)}</span>}
+              </span>
+              <span className="p-row-right">
+                <span className="p-reward">${t.reward}</span>
+                <span className={`p-badge ${t.status}`}>{statusLabel(t.status)}</span>
+              </span>
+            </div>
+            {canDeleteTask(t) && <DeleteButton task={t} disabled={disabled} onDelete={onDelete} />}
+          </li>
+        ))}
       </ul>
       <ShowMoreButton
         remaining={visible.length - shown}
-        onClick={() => setShown((n) => n + PAGE_SIZE)}
+        canCollapse={shown > PAGE_SIZE}
+        onMore={() => setShown((n) => n + PAGE_SIZE)}
+        onLess={() => setShown(PAGE_SIZE)}
       />
     </section>
   )

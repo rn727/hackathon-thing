@@ -4,7 +4,7 @@ import { taskDetails } from './taskUtils.js'
 //   Approve -> reward is added to the balance
 //   Redo    -> task goes back to the kid to try again
 //   Reject  -> task is closed for good, no reward
-export default function SubmittedTasks({ tasks, onApprove, onRedo, onReject }) {
+export default function SubmittedTasks({ tasks, disabled, onApprove, onRedo, onReject }) {
   return (
     <section className="p-card">
       <h2>Waiting for your approval</h2>
@@ -15,13 +15,13 @@ export default function SubmittedTasks({ tasks, onApprove, onRedo, onReject }) {
             <div className="p-task-row">
               <span>
                 {t.title} <span className="p-reward">${t.reward}</span>
-                <span className="p-due">{taskDetails(t)}</span>
+                {taskDetails(t) && <span className="p-due">{taskDetails(t)}</span>}
               </span>
             </div>
             <div className="p-actions">
-              <button className="p-approve" onClick={() => onApprove(t.id)}>Approve</button>
-              <button className="p-redo" onClick={() => onRedo(t.id)}>Redo</button>
-              <button className="p-reject" onClick={() => onReject(t.id)}>Reject</button>
+              <button className="p-approve" disabled={disabled} onClick={() => onApprove(t.id)}>Approve</button>
+              <button className="p-redo" disabled={disabled} onClick={() => onRedo(t.id)}>Redo</button>
+              <button className="p-reject" disabled={disabled} onClick={() => onReject(t.id)}>Reject</button>
             </div>
           </li>
         ))}

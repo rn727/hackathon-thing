@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { todayString } from './taskUtils.js'
 
 export default function CreateTaskForm({ onCreate }) {
   const [title, setTitle] = useState('')
   const [reward, setReward] = useState('')
   const [type, setType] = useState('completion')
   const [duration, setDuration] = useState('') // minutes, only used for time-based tasks
-  const [dueDate, setDueDate] = useState('')
 
   const [errors, setErrors] = useState({})       // per-field validation messages
   const [submitError, setSubmitError] = useState('') // set if onCreate itself fails
@@ -22,7 +20,6 @@ export default function CreateTaskForm({ onCreate }) {
     if (type === 'time' && !(Number(duration) > 0)) {
       found.duration = 'Enter how many minutes the kid should spend on this task.'
     }
-    if (dueDate && dueDate < todayString()) found.dueDate = 'Due date cannot be in the past.'
     return found
   }
 
@@ -48,13 +45,11 @@ export default function CreateTaskForm({ onCreate }) {
         title: title.trim(),
         reward,
         type,
-        durationMinutes: type === 'time' ? Number(duration) : null,
-        dueDate: dueDate || null,
+        duration_minutes: type === 'time' ? Number(duration) : null,
       })
       setTitle('')
       setReward('')
       setDuration('')
-      setDueDate('')
       setSuccess(true)
     } catch {
       setSubmitError('Could not create the task. Please try again.')
@@ -118,17 +113,6 @@ export default function CreateTaskForm({ onCreate }) {
           {errors.duration && <p className="p-field-error">{errors.duration}</p>}
         </label>
       )}
-
-      <label className="p-field-label">
-        Due date (optional)
-        <input
-          className={errors.dueDate ? 'p-invalid' : ''}
-          type="date"
-          value={dueDate}
-          onChange={(e) => { setDueDate(e.target.value); touch('dueDate') }}
-        />
-        {errors.dueDate && <p className="p-field-error">{errors.dueDate}</p>}
-      </label>
 
       <button type="submit" className="p-primary">Add task</button>
     </form>
