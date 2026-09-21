@@ -165,6 +165,34 @@ When choosing between a simple prototype solution and a theoretically cleaner pr
 
 ---
 
+### 5. Code First, Comments Only When Necessary
+
+Always write the code first.
+
+Add a comment only when it is completely necessary to understand the code:
+
+- a non-obvious business rule (for example, why the same task is not awarded twice)
+- a workaround for a bug or a platform limitation
+- a security or money-related check that needs to explain itself
+
+Do not add comments that just repeat what the code already says.
+
+Good:
+
+```js
+// Guard: only submitted tasks can be approved, so a task is never paid twice
+if (task.status !== 'submitted') return
+```
+
+Bad:
+
+```js
+// set status to approved
+task.status = 'approved'
+```
+
+---
+
 ## Core Product Behavior
 
 The core task lifecycle should remain simple.
