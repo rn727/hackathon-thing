@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 const plaidClient = require("./plaid");
 const tasksRouter = require("./tasks");
-const { saveItem } = require("./plaidSync");
+const { saveItem, fetchTransactions, storeTransactions } = require("./plaidSync");
 const { supabaseAdmin } = require("./supabaseAdmin");
 
 app.use(cors());
@@ -80,6 +80,120 @@ app.post("/api/exchange-public-token", async (req, res) => {
     console.error("Error exchanging public token: ", error.response?.data || error);
 
     res.status(500).json({ error: "Failed to exchange public token" });
+  }
+});
+
+// The linked accounts, and which one the parent marked as the kid's.
+app.get("/api/plaid-accounts", async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from("plaid_accounts")
+    .select("id, name, current_balance, kid_id")
+    .order("id");
+
+  if (error) {
+    console.error("Error loading bank accounts: ", error);
+
+    return res.status(500).json({ error: "Could not load the bank accounts" });
+  }
+
+  res.json(data);
+});
+
+// Parent picks the account the kid spends from. account_id null clears the pick.
+// One kid and one account per kid in this prototype, so the old pick is cleared
+// first: kid balance tracking has to read exactly one account, never two.
+app.put("/api/kid-account", async (req, res) => {
+  try {
+    const { account_id } = req.body;
+    if (account_id != null && !Number.isInteger(Number(account_id))) {
+      return res.status(400).json({ error: "account_id must be an account id or null" });
+    }
+
+    const { data: kid, error: kidError } = await supabaseAdmin
+      .from("users").select("id").eq("role", "kid").order("id").limit(1).single();
+    if (kidError) throw kidError;
+
+    // The new pick is set before the old one is cleared, so a bad id leaves the
+    // parent's current choice alone instead of wiping it.
+    if (account_id != null) {
+      const { data, error } = await supabaseAdmin
+        .from("plaid_accounts")
+        .update({ kid_id: kid.id })
+        .eq("id", Number(account_id))
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: "That account is not linked" });
+    }
+
+    const clear = supabaseAdmin.from("plaid_accounts").update({ kid_id: null }).eq("kid_id", kid.id);
+    const { error: clearError } = await (account_id == null ? clear : clear.neq("id", Number(account_id)));
+    if (clearError) throw clearError;
+
+    res.json({ account_id: account_id == null ? null : Number(account_id), kid_id: kid.id });
+  }
+  catch (error) {
+    console.error("Error saving the kid's account: ", error);
+
+    res.status(500).json({ error: "Could not save the kid's account" });
+  }
+});
+
+// Spending for the linked bank, read live from Plaid. kid_id is set on the rows
+// that belong to the account the parent designated as the kid's, so the frontend
+// can split the kid's spending from the rest of the family's.
+// Amounts follow the app's convention: a purchase is negative, money in is positive.
+app.get("/api/transactions", async (req, res) => {
+  try {
+    const { data: item, error } = await supabaseAdmin
+      .from("plaid_items").select("id").order("id").limit(1).maybeSingle();
+    if (error) throw error;
+    if (!item) return res.json([]);
+
+    const { data: accounts, error: accountsError } = await supabaseAdmin
+      .from("plaid_accounts").select("plaid_account_id, name, kid_id").eq("item_id", item.id);
+    if (accountsError) throw accountsError;
+
+    const byAccount = new Map(accounts.map((a) => [a.plaid_account_id, a]));
+    const rows = await fetchTransactions(item.id);
+
+    res.json(rows.map((row) => ({
+      ...row,
+      kid_id: byAccount.get(row.account_id)?.kid_id ?? null,
+      account_name: byAccount.get(row.account_id)?.name ?? null,
+    })));
+  }
+  catch (error) {
+    console.error("Error loading transactions: ", error.response?.data || error);
+
+    // Plaid needs a moment after Link before transactions exist.
+    if (error.response?.data?.error_code === "PRODUCT_NOT_READY") {
+      return res.status(503).json({ error: "Plaid is still preparing this account. Try again in a moment." });
+    }
+
+    res.status(500).json({ error: "Could not load transactions" });
+  }
+});
+
+// Pulls the linked bank's transactions into Supabase. Safe to call repeatedly:
+// rows are upserted on plaid_transaction_id, so nothing is duplicated.
+app.post("/api/plaid-sync", async (req, res) => {
+  try {
+    const { data: item, error } = await supabaseAdmin
+      .from("plaid_items").select("id").order("id").limit(1).maybeSingle();
+    if (error) throw error;
+    if (!item) return res.status(409).json({ error: "No bank account is linked yet" });
+
+    res.json(await storeTransactions(item.id));
+  }
+  catch (error) {
+    console.error("Error syncing transactions: ", error.response?.data || error);
+
+    if (error.response?.data?.error_code === "PRODUCT_NOT_READY") {
+      return res.status(503).json({ error: "Plaid is still preparing this account. Try again in a moment." });
+    }
+
+    res.status(500).json({ error: "Could not sync transactions" });
   }
 });
 
