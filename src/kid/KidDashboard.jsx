@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { sampleSpending } from '../parent/parentSampleData.js'
+import SpendingList from '../parent/SpendingList.jsx'
 import '../parent/parent.css'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
@@ -24,7 +24,6 @@ export default function ChildDashboard() {
   const [kid, setKid] = useState({ balance: 0 })
   const [tasks, setTasks] = useState([])
   const [error, setError] = useState('')
-  const spending = sampleSpending
 
   // Load the kid's balance and tasks (available ones + this kid's own) from Supabase.
   useEffect(() => {
@@ -161,16 +160,7 @@ export default function ChildDashboard() {
         )}
       </section>
 
-      <section className="p-card">
-        <h2>Recent Spending</h2>
-
-        {spending.map((item) => (
-          <div key={item.id} className="p-task-row">
-            <span>{item.description}</span>
-            <span>${item.amount.toFixed(2)}</span>
-          </div>
-        ))}
-      </section>
+      <SpendingList />
     </div>
   )
 }

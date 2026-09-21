@@ -4,7 +4,7 @@ const API = 'http://localhost:8000/api'
 
 // Plaid Link (Sandbox). The server exchanges the public token and stores the
 // access token in Supabase, so the browser never sees the access token.
-export default function ConnectBank() {
+export default function ConnectBank({ onSynced }) {
   const [linked, setLinked] = useState(false)
   const [checking, setChecking] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -107,6 +107,7 @@ export default function ConnectBank() {
       if (!response.ok) throw new Error(data.error || `Server said ${response.status}`)
       setStatus(`Saved ${data.stored} transaction${data.stored === 1 ? '' : 's'}.`)
       await loadAccounts()
+      onSynced?.()
     } catch (err) {
       console.error('Could not refresh the bank data:', err)
       setStatus(err.message || 'Could not refresh the bank data.')
