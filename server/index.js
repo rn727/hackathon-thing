@@ -28,7 +28,7 @@ app.post("/api/create-link-token", async (req, res) => {
       user: {
         client_user_id: "demo-user",
       },
-      client_name: "PLACEHOLDER TBD",
+      client_name: "TaskPay",
       products: ["transactions"],
       country_codes: ["US"],
       language: "en"

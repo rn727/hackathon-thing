@@ -1,0 +1,62 @@
+/* Login page only. Everything sits under .login-page, and it reuses the colours from parent.css. */
+
+.parent-page.login-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 96px;
+}
+
+.login-page h1 {
+  margin-bottom: 18px;
+  font-size: 2rem;
+  text-align: center;
+}
+
+.login-page .p-card {
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, .08);
+}
+
+.login-page h2 {
+  margin-bottom: 6px;
+  font-size: 1.15rem;
+}
+
+.login-page .p-card > .p-muted {
+  margin-bottom: 20px;
+}
+
+.login-page .login-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-page .login-options a {
+  display: block;
+  text-decoration: none;
+}
+
+.login-page button.login-button {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  background: var(--p-brand);
+}
+
+.login-page button.login-button:hover {
+  background: var(--p-brand-dark);
+}
+
+.login-page a:first-child button.login-button {
+  background: var(--p-navy);
+}
+
+.login-page a:first-child button.login-button:hover {
+  background: #142e6b;
+}

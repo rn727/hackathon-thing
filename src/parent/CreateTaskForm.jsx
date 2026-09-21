@@ -25,7 +25,7 @@ export default function CreateTaskForm({ onCreate }) {
     if (!title.trim()) found.title = 'Enter a task title.'
     if (!(Number(reward) > 0)) found.reward = 'Enter a reward greater than $0.'
     if (type === 'time' && !(Number(duration) > 0)) {
-      found.duration = 'Enter how many minutes the kid should spend on this task.'
+      found.duration = 'Enter how many minutes the child should spend on this task.'
     }
     return found
   }
