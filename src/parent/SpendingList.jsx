@@ -2,8 +2,7 @@ import { useState } from 'react'
 import ShowMoreButton from './ShowMoreButton.jsx'
 import { PAGE_SIZE } from './taskUtils.js'
 
-// Fake data on Day 1. On Day 2, pass Plaid transactions in the same shape:
-// { id, name, amount, date, category }.
+// Rows look like { id, name, amount, date }, with amount as a positive number. category is optional.
 export default function SpendingList({ spending }) {
   const [shown, setShown] = useState(PAGE_SIZE) // how many rows are visible
 
@@ -13,12 +12,13 @@ export default function SpendingList({ spending }) {
   return (
     <section className="p-card">
       <h2>Recent spending</h2>
+      {sorted.length === 0 && <p className="p-muted">No spending yet.</p>}
       <ul className="p-list">
         {sorted.slice(0, shown).map((s) => (
           <li key={s.id}>
             <span>
               {s.name}
-              <span className="p-muted p-small"> · {s.category} · {s.date}</span>
+              <span className="p-muted p-small"> · {s.category ? `${s.category} · ` : ''}{s.date}</span>
             </span>
             <span className="p-spend">-${s.amount.toFixed(2)}</span>
           </li>

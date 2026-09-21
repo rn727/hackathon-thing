@@ -6,7 +6,6 @@ import SubmittedTasks from './SubmittedTasks.jsx'
 import TaskList from './TaskList.jsx'
 import SpendingList from './SpendingList.jsx'
 import ConnectBank from './ConnectBank.jsx'
-import { sampleSpending } from './parentSampleData.js'
 import './parent.css'
 
 // The Express server does every create / update / delete. This page only reads from Supabase.
@@ -17,6 +16,15 @@ const API = 'http://localhost:8000/api/tasks'
 const toTask = (row) => ({ ...row, reward: Number(row.reward) })
 const toKid = (row) => ({ ...row, balance: Number(row.balance) })
 
+// A transactions row with a negative amount is money the kid spent (Plaid sync saves purchases
+// as negative numbers). Turn it into the shape SpendingList shows.
+const toSpending = (row) => ({
+  id: row.id,
+  name: row.name || 'Unknown',
+  amount: Math.abs(Number(row.amount)),
+  date: String(row.created_at).slice(0, 10),
+})
+
 // Parent screen. Reads tasks and the kid's balance from Supabase; changes go through the server.
 export default function ParentDashboard() {
   const [kid, setKid] = useState(null)   // the kid's row from the users table (null = none found)
@@ -26,7 +34,7 @@ export default function ParentDashboard() {
   const [actionError, setActionError] = useState('') // shown when Approve / Redo / Reject / Delete fails
   const [reloadKey, setReloadKey] = useState(0)     // change this number to load the data again
   const [busyId, setBusyId] = useState(null)         // id of the task being changed right now
-  const spending = sampleSpending                    // TODO: load from the Plaid endpoint on the Express server
+  const [spending, setSpending] = useState([])   // the kid's purchases, from the transactions table
 
   // Load the kid and all tasks from Supabase. Runs on the first render, and again
   // whenever `reloadKey` changes (Try again button, or after a conflicting change).
@@ -35,13 +43,16 @@ export default function ParentDashboard() {
       const kidResult = await supabase
         .from('users').select('*').eq('role', 'kid').order('id').limit(1).maybeSingle()
       const taskResult = await supabase.from('tasks').select('*')
+      const spendResult = await supabase
+        .from('transactions').select('*').lt('amount', 0).order('created_at', { ascending: false }).limit(50)
 
-      if (kidResult.error || taskResult.error) {
-        console.error('Could not load data:', kidResult.error || taskResult.error)
+      if (kidResult.error || taskResult.error || spendResult.error) {
+        console.error('Could not load data:', kidResult.error || taskResult.error || spendResult.error)
         setLoadError('Could not load tasks. Please try again.')
       } else {
         setKid(kidResult.data ? toKid(kidResult.data) : null)
         setTasks(taskResult.data.map(toTask))
+        setSpending(spendResult.data.map(toSpending))
         setLoadError('')
       }
       setLoading(false)
