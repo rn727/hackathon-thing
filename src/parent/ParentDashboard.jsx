@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../../supabase.js'
+import { supabase } from '../lib/supabaseClient.js'
 import CreateTaskForm from './CreateTaskForm.jsx'
 import SubmittedTasks from './SubmittedTasks.jsx'
 import TaskList from './TaskList.jsx'
 import SpendingList from './SpendingList.jsx'
 import ConnectBank from './ConnectBank.jsx'
-import { sampleSpending } from './parentSampleData.js'
 import './parent.css'
 
 // The Express server does every create / update / delete. This page only reads from Supabase.
@@ -26,7 +25,7 @@ export default function ParentDashboard() {
   const [actionError, setActionError] = useState('') // shown when Approve / Redo / Reject / Delete fails
   const [reloadKey, setReloadKey] = useState(0)     // change this number to load the data again
   const [busyId, setBusyId] = useState(null)         // id of the task being changed right now
-  const spending = sampleSpending                    // TODO: load from the Plaid endpoint on the Express server
+  const [syncKey, setSyncKey] = useState(0)          // bumped after a bank sync, so the spending list reloads
 
   // Load the kid and all tasks from Supabase. Runs on the first render, and again
   // whenever `reloadKey` changes (Try again button, or after a conflicting change).
@@ -186,9 +185,9 @@ export default function ParentDashboard() {
 
           <TaskList tasks={tasks} disabled={busyId !== null} onDelete={deleteTask} />
 
-          <ConnectBank />
+          <ConnectBank onSynced={() => setSyncKey((n) => n + 1)} />
 
-          <SpendingList spending={spending} />
+          <SpendingList reloadKey={syncKey} />
         </>
       )}
     </div>
