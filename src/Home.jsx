@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom'
 import './parent/parent.css'
+import './Home.css'
 
 export default function Home() {
   return (
-    <div className="parent-page">
+    <div className="parent-page login-page">
       <h1>Welcome</h1>
 
       <section className="p-card">
         <h2>Choose your dashboard</h2>
-        <p>Select how you want to enter the app.</p>
+        <p className="p-muted">Select how you want to enter the app.</p>
 
         <div className="login-options">
           <Link to="/parent">
