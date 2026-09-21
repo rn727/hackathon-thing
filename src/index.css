@@ -21,6 +21,7 @@
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
+  -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -52,6 +53,7 @@
 
 body {
   margin: 0;
+  overscroll-behavior-y: contain;
 }
 
 #root {
@@ -59,7 +61,6 @@ body {
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -108,4 +109,12 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+/* Every screen in the app is light and uses this background, so paint it behind
+   the app too. Otherwise the area around it is white (or dark on a phone set to
+   dark mode) and reads as a band down each side. */
+:root, body {
+  color-scheme: light;
+  background: #f4f6fa;
 }

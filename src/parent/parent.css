@@ -221,3 +221,36 @@
 
 /* Space between a short intro line and the content under it. */
 .parent-page .p-card > .p-muted:not(:last-child) { margin-bottom: 12px; }
+/* ---- Phone ----
+   Every screen uses .parent-page, so the phone sizing lives here once. */
+
+.parent-page {
+  /* Fill the screen. A fixed column left a narrow band with a different colour
+     down each side on wider phones. */
+  max-width: none;
+  /* 100vh is taller than the visible area while the browser's address bar is
+     showing, which pushes the bottom of the page out of reach. */
+  min-height: 100dvh;
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 44px is the smallest target a finger hits reliably. */
+.parent-page button { min-height: 44px; touch-action: manipulation; }
+.parent-page button.p-icon { width: 40px; height: 40px; min-height: 40px; }
+
+/* Approve / Redo / Reject share the row evenly instead of being three small buttons. */
+.parent-page .p-actions button { flex: 1 1 0; min-width: 96px; }
+
+/* A long title wraps instead of making the row wider than the screen. */
+.parent-page .p-task-row > span:first-child,
+.parent-page .p-list li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+
+/* iOS zooms the whole page in when a field's text is smaller than 16px.
+   Only touch devices need the bigger text, so the desktop sizes stay as they are. */
+@media (pointer: coarse) {
+  .parent-page select,
+  .parent-page .p-card-head select { font-size: 16px; }
+}
