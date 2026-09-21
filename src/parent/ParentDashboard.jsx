@@ -5,6 +5,7 @@ import CreateTaskForm from './CreateTaskForm.jsx'
 import SubmittedTasks from './SubmittedTasks.jsx'
 import TaskList from './TaskList.jsx'
 import SpendingList from './SpendingList.jsx'
+import ConnectBank from './ConnectBank.jsx'
 import { sampleSpending } from './parentSampleData.js'
 import './parent.css'
 
@@ -184,6 +185,8 @@ export default function ParentDashboard() {
           />
 
           <TaskList tasks={tasks} disabled={busyId !== null} onDelete={deleteTask} />
+
+          <ConnectBank />
 
           <SpendingList spending={spending} />
         </>
