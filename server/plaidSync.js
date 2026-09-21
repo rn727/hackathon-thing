@@ -94,10 +94,33 @@ async function syncItem(itemId) {
   return { itemId: item.id, added: added.length, modified: modified.length, removed: removed.length, ...result };
 }
 
+// Reads one item's transactions straight from Plaid, without storing them. A null
+// cursor returns the whole history as `added`, so nothing else has to be merged.
+async function fetchTransactions(itemId) {
+  const { data: item, error } = await supabaseAdmin
+    .from("plaid_items")
+    .select("id, access_token")
+    .eq("id", itemId)
+    .single();
+  if (error) throw error;
+
+  const rows = [];
+  let cursor;
+  let hasMore = true;
+  while (hasMore) {
+    const { data } = await plaidClient.transactionsSync({ access_token: item.access_token, cursor });
+    rows.push(...data.added.map(toRow));
+    cursor = data.next_cursor;
+    hasMore = data.has_more;
+  }
+
+  return rows;
+}
+
 async function syncAll() {
   const { data, error } = await supabaseAdmin.from("plaid_items").select("id");
   if (error) throw error;
   return Promise.all(data.map((item) => syncItem(item.id)));
 }
 
-module.exports = { saveItem, syncItem, syncAll, toRow };
+module.exports = { saveItem, syncItem, syncAll, fetchTransactions, toRow };
