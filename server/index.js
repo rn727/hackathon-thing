@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 const plaidClient = require("./plaid");
 const tasksRouter = require("./tasks");
-const { saveItem, fetchTransactions } = require("./plaidSync");
+const { saveItem, fetchTransactions, storeTransactions } = require("./plaidSync");
 const { supabaseAdmin } = require("./supabaseAdmin");
 
 app.use(cors());
@@ -172,6 +172,28 @@ app.get("/api/transactions", async (req, res) => {
     }
 
     res.status(500).json({ error: "Could not load transactions" });
+  }
+});
+
+// Pulls the linked bank's transactions into Supabase. Safe to call repeatedly:
+// rows are upserted on plaid_transaction_id, so nothing is duplicated.
+app.post("/api/plaid-sync", async (req, res) => {
+  try {
+    const { data: item, error } = await supabaseAdmin
+      .from("plaid_items").select("id").order("id").limit(1).maybeSingle();
+    if (error) throw error;
+    if (!item) return res.status(409).json({ error: "No bank account is linked yet" });
+
+    res.json(await storeTransactions(item.id));
+  }
+  catch (error) {
+    console.error("Error syncing transactions: ", error.response?.data || error);
+
+    if (error.response?.data?.error_code === "PRODUCT_NOT_READY") {
+      return res.status(503).json({ error: "Plaid is still preparing this account. Try again in a moment." });
+    }
+
+    res.status(500).json({ error: "Could not sync transactions" });
   }
 });
 
