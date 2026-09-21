@@ -10,6 +10,9 @@
 }
 
 .parent-page {
+  /* The page is light-only, so form controls must not pick up the OS dark palette
+     (it made dropdown options white on white). */
+  color-scheme: light;
   --p-ink: #101828;
   --p-text: #344054;
   --p-muted: #667085;
@@ -52,6 +55,26 @@
 }
 .parent-page h1 { font-size: 1.35rem; font-weight: 700; margin: 0; color: var(--p-ink); letter-spacing: -0.01em; }
 .parent-page h2 { font-size: .95rem; font-weight: 650; margin: 0 0 12px; color: var(--p-ink); }
+.parent-page .p-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.parent-page .p-card-head h2 { margin: 0; }
+.parent-page .p-card-head select { width: auto; max-width: 55%; margin: 0; font-size: .85rem; padding: 7px 28px 7px 10px; }
+/* Chrome/Edge only: opt the filter select into the customizable picker so the list
+   always drops below the button. Other browsers keep the native popup. */
+@supports (appearance: base-select) {
+  .parent-page .p-card-head select { appearance: base-select; background-image: none; padding: 7px 10px; gap: 6px; }
+  .parent-page .p-card-head select::picker(select) {
+    appearance: base-select;
+    position-area: block-end span-inline-start;
+    margin-block-start: 4px;
+    padding: 4px;
+    background: #fff;
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(16, 24, 40, .12);
+  }
+  .parent-page .p-card-head select option { padding: 8px 10px; font-size: .85rem; border-radius: 6px; }
+  .parent-page .p-card-head select option:hover { background: #f2f4f7; }
+}
 .parent-page .logout-button {
   padding: 6px 12px;
   font-size: .85rem;
@@ -178,11 +201,6 @@
 .parent-page .p-due { display: block; margin-top: 2px; font-size: .78rem; font-weight: 400; color: var(--p-muted); }
 
 /* Filter tabs */
-.parent-page .p-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-.parent-page button.p-tab { padding: 5px 11px; font-size: .8rem; color: var(--p-text); background: #f2f4f7; border: 1px solid transparent; border-radius: 999px; }
-.parent-page button.p-tab:hover { background: #eaecf0; }
-.parent-page button.p-tab.active { color: #fff; background: var(--p-navy); }
-.parent-page .p-tab-count { margin-left: 3px; opacity: .65; font-weight: 500; }
 
 /* Status badges */
 .parent-page .p-badge { padding: 3px 10px; font-size: .72rem; font-weight: 600; color: var(--p-text); background: #f2f4f7; border-radius: 999px; }
@@ -203,3 +221,36 @@
 
 /* Space between a short intro line and the content under it. */
 .parent-page .p-card > .p-muted:not(:last-child) { margin-bottom: 12px; }
+/* ---- Phone ----
+   Every screen uses .parent-page, so the phone sizing lives here once. */
+
+.parent-page {
+  /* Fill the screen. A fixed column left a narrow band with a different colour
+     down each side on wider phones. */
+  max-width: none;
+  /* 100vh is taller than the visible area while the browser's address bar is
+     showing, which pushes the bottom of the page out of reach. */
+  min-height: 100dvh;
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 44px is the smallest target a finger hits reliably. */
+.parent-page button { min-height: 44px; touch-action: manipulation; }
+.parent-page button.p-icon { width: 40px; height: 40px; min-height: 40px; }
+
+/* Approve / Redo / Reject share the row evenly instead of being three small buttons. */
+.parent-page .p-actions button { flex: 1 1 0; min-width: 96px; }
+
+/* A long title wraps instead of making the row wider than the screen. */
+.parent-page .p-task-row > span:first-child,
+.parent-page .p-list li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+
+/* iOS zooms the whole page in when a field's text is smaller than 16px.
+   Only touch devices need the bigger text, so the desktop sizes stay as they are. */
+@media (pointer: coarse) {
+  .parent-page select,
+  .parent-page .p-card-head select { font-size: 16px; }
+}

@@ -88,6 +88,7 @@ export default function CreateTaskForm({ onCreate }) {
           <input
             className={errors.reward ? 'p-invalid' : ''}
             type="number"
+            inputMode="decimal"
             min="0"
             step="0.5"
             placeholder="Reward ($)"
@@ -111,6 +112,7 @@ export default function CreateTaskForm({ onCreate }) {
           <input
             className={errors.duration ? 'p-invalid' : ''}
             type="number"
+            inputMode="numeric"
             min="1"
             step="5"
             placeholder="e.g. 30"

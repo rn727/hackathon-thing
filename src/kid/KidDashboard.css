@@ -28,3 +28,9 @@
 .kid-page button.kid-claim { background: var(--p-brand); }
 .kid-page button.kid-done { background: var(--p-ok); }
 .kid-page button.kid-action:active:not(:disabled) { transform: scale(0.97); }
+
+/* On a narrow phone the action button drops onto its own line instead of
+   squeezing the task title. */
+.kid-page .p-task-row { flex-wrap: wrap; }
+.kid-page .p-task-row > div { flex: 1 1 55%; min-width: 0; }
+.kid-page button.kid-action { flex: 1 1 auto; }

@@ -35,19 +35,19 @@ export default function TaskList({ tasks, disabled, onDelete }) {
 
   return (
     <section className="p-card">
-      <h2>Tasks</h2>
-
-      <div className="p-tabs">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            className={`p-tab ${filter === f.key ? 'active' : ''}`}
-            onClick={() => { setFilter(f.key); setShown(PAGE_SIZE) }} // back to the first page
-          >
-            {f.label} <span className="p-tab-count">{count(f.key)}</span>
-          </button>
-        ))}
+      <div className="p-card-head">
+        <h2>Tasks</h2>
+        <select
+          aria-label="Filter tasks by status"
+          value={filter}
+          onChange={(e) => { setFilter(e.target.value); setShown(PAGE_SIZE) }} // back to the first page
+        >
+          {FILTERS.map((f) => (
+            <option key={f.key} value={f.key}>
+              {f.label} ({count(f.key)})
+            </option>
+          ))}
+        </select>
       </div>
 
       {visible.length === 0 && <p className="p-muted">No tasks here.</p>}
