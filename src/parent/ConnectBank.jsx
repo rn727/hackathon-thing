@@ -9,6 +9,19 @@ export default function ConnectBank() {
   const [checking, setChecking] = useState(true)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
+  const [accounts, setAccounts] = useState([])
+  const [saving, setSaving] = useState(false)
+
+  async function loadAccounts() {
+    try {
+      const response = await fetch(`${API}/plaid-accounts`)
+      const data = await response.json()
+      setAccounts(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('Could not load the bank accounts:', err)
+      setStatus('Could not load the bank accounts.')
+    }
+  }
 
   useEffect(() => {
     async function loadStatus() {
@@ -16,6 +29,7 @@ export default function ConnectBank() {
         const response = await fetch(`${API}/plaid-status`)
         const data = await response.json()
         setLinked(Boolean(data.linked))
+        if (data.linked) await loadAccounts()
       } catch (err) {
         console.error('Could not check the bank connection:', err)
         setStatus('Could not check the bank connection. Is the server running?')
@@ -44,6 +58,7 @@ export default function ConnectBank() {
           if (response.ok) {
             setLinked(true)
             setStatus('')
+            await loadAccounts()
           } else {
             setStatus('Could not save the bank connection. Check the server logs.')
           }
@@ -61,6 +76,28 @@ export default function ConnectBank() {
     }
   }
 
+  // Mark one account as the kid's, or pass null to clear the choice. The server
+  // clears the old choice, so only one account is ever the kid's.
+  async function chooseKidAccount(accountId) {
+    setSaving(true)
+    setStatus('')
+    try {
+      const response = await fetch(`${API}/kid-account`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_id: accountId }),
+      })
+      if (!response.ok) throw new Error(`Server said ${response.status}`)
+      await loadAccounts()
+    } catch (err) {
+      console.error("Could not save the kid's account:", err)
+      setStatus("Could not save the kid's account.")
+    }
+    setSaving(false)
+  }
+
+  const kidAccount = accounts.find((a) => a.kid_id !== null)
+
   return (
     <section className="p-card">
       <h2>Bank account</h2>
@@ -77,6 +114,43 @@ export default function ConnectBank() {
       >
         {linked ? 'Bank account already linked' : 'Connect Bank'}
       </button>
+
+      {linked && accounts.length > 0 && (
+        <>
+          <p className="p-field-label">
+            Which account is the kid's? Spending on it counts towards the kid's balance.
+          </p>
+          {accounts.map((account) => (
+            <label key={account.id} className="p-radio">
+              <input
+                type="radio"
+                name="kid-account"
+                checked={account.kid_id !== null}
+                disabled={saving}
+                onChange={() => chooseKidAccount(account.id)}
+              />
+              <span>
+                {account.name}
+                {account.current_balance != null && (
+                  <span className="p-muted p-small"> · ${Number(account.current_balance).toFixed(2)}</span>
+                )}
+              </span>
+            </label>
+          ))}
+          {kidAccount && (
+            <div className="p-actions">
+              <button type="button" className="p-redo" disabled={saving} onClick={() => chooseKidAccount(null)}>
+                Clear
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {linked && accounts.length === 0 && (
+        <p className="p-muted p-small">No accounts found for the linked bank yet.</p>
+      )}
+
       {status && <p className="p-muted p-small">{status}</p>}
     </section>
   )

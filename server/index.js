@@ -83,6 +83,62 @@ app.post("/api/exchange-public-token", async (req, res) => {
   }
 });
 
+// The linked accounts, and which one the parent marked as the kid's.
+app.get("/api/plaid-accounts", async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from("plaid_accounts")
+    .select("id, name, current_balance, kid_id")
+    .order("id");
+
+  if (error) {
+    console.error("Error loading bank accounts: ", error);
+
+    return res.status(500).json({ error: "Could not load the bank accounts" });
+  }
+
+  res.json(data);
+});
+
+// Parent picks the account the kid spends from. account_id null clears the pick.
+// One kid and one account per kid in this prototype, so the old pick is cleared
+// first: kid balance tracking has to read exactly one account, never two.
+app.put("/api/kid-account", async (req, res) => {
+  try {
+    const { account_id } = req.body;
+    if (account_id != null && !Number.isInteger(Number(account_id))) {
+      return res.status(400).json({ error: "account_id must be an account id or null" });
+    }
+
+    const { data: kid, error: kidError } = await supabaseAdmin
+      .from("users").select("id").eq("role", "kid").order("id").limit(1).single();
+    if (kidError) throw kidError;
+
+    // The new pick is set before the old one is cleared, so a bad id leaves the
+    // parent's current choice alone instead of wiping it.
+    if (account_id != null) {
+      const { data, error } = await supabaseAdmin
+        .from("plaid_accounts")
+        .update({ kid_id: kid.id })
+        .eq("id", Number(account_id))
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: "That account is not linked" });
+    }
+
+    const clear = supabaseAdmin.from("plaid_accounts").update({ kid_id: null }).eq("kid_id", kid.id);
+    const { error: clearError } = await (account_id == null ? clear : clear.neq("id", Number(account_id)));
+    if (clearError) throw clearError;
+
+    res.json({ account_id: account_id == null ? null : Number(account_id), kid_id: kid.id });
+  }
+  catch (error) {
+    console.error("Error saving the kid's account: ", error);
+
+    res.status(500).json({ error: "Could not save the kid's account" });
+  }
+});
+
 const PORT = process.env.PORT || 8000
 
 app.listen(PORT, () => {

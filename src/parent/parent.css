@@ -80,3 +80,5 @@ Parent · CSS
 .parent-page button.p-show-more:hover { background: #e5e7eb; }
  
 
+.parent-page .p-radio { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: .9rem; }
+.parent-page .p-radio input { width: auto; margin: 0; flex-shrink: 0; }
