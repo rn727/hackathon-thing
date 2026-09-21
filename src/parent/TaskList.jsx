@@ -60,7 +60,7 @@ export default function TaskList({ tasks, disabled, onDelete }) {
                 {taskDetails(t) && <span className="p-due">{taskDetails(t)}</span>}
               </span>
               <span className="p-row-right">
-                <span className="p-reward">${t.reward}</span>
+                <span className="p-reward">${t.reward.toFixed(2)}</span>
                 <span className={`p-badge ${t.status}`}>{statusLabel(t.status)}</span>
                 {canDeleteTask(t) && <DeleteButton task={t} disabled={disabled} onDelete={onDelete} />}
               </span>

@@ -14,7 +14,7 @@ export default function SubmittedTasks({ tasks, disabled, onApprove, onRedo, onR
           <li key={t.id}>
             <div className="p-task-row">
               <span>
-                {t.title} <span className="p-reward">${t.reward}</span>
+                {t.title} <span className="p-reward">${t.reward.toFixed(2)}</span>
                 {taskDetails(t) && <span className="p-due">{taskDetails(t)}</span>}
               </span>
             </div>
