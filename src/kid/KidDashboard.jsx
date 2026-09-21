@@ -65,7 +65,23 @@ export default function ChildDashboard() {
     )
   }
 
-  const submitTask = (id) => {
+  const submitTask = async (id) => {
+    // Only submits this kid's own task, and only if it is still 'claimed'.
+    const { data, error: submitError } = await supabase
+      .from('tasks')
+      .update({ status: 'submitted' })
+      .eq('id', id)
+      .eq('kid_id', KID_ID)
+      .eq('status', 'claimed')
+      .select()
+
+    if (submitError || data.length === 0) {
+      console.error('Could not submit task:', submitError)
+      setError('Could not submit the task')
+      return
+    }
+
+    setError('')
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id
