@@ -6,6 +6,19 @@ import { supabase } from '../lib/supabaseClient.js'
 
 // No login yet: the kid screen always acts as this kid (users.id in Supabase).
 const KID_ID = 2
+const API = 'http://localhost:8000/api/tasks'
+
+// Ask the server to move a task ('claim' or 'submit'). Returns true if it worked.
+async function callServer(id, action) {
+  try {
+    const response = await fetch(`${API}/${id}/${action}`, { method: 'POST' })
+    if (!response.ok) console.error(`Could not ${action} task:`, await response.text())
+    return response.ok
+  } catch (err) {
+    console.error(`Could not ${action} task:`, err)
+    return false
+  }
+}
 
 export default function ChildDashboard() {
   const [kid, setKid] = useState({ balance: 0 })
@@ -41,16 +54,9 @@ export default function ChildDashboard() {
   }, [])
 
   const claimTask = async (id) => {
-    // Only claims the task if it is still 'available', so it can't be claimed twice.
-    const { data, error: claimError } = await supabase
-      .from('tasks')
-      .update({ status: 'claimed', kid_id: KID_ID })
-      .eq('id', id)
-      .eq('status', 'available')
-      .select()
-
-    if (claimError || data.length === 0) {
-      console.error('Could not claim task:', claimError)
+    // The server only claims the task if it is still 'available'.
+    const ok = await callServer(id, 'claim')
+    if (!ok) {
       setError('Could not claim the task')
       return
     }
@@ -66,17 +72,9 @@ export default function ChildDashboard() {
   }
 
   const submitTask = async (id) => {
-    // Only submits this kid's own task, and only if it is still 'claimed'.
-    const { data, error: submitError } = await supabase
-      .from('tasks')
-      .update({ status: 'submitted' })
-      .eq('id', id)
-      .eq('kid_id', KID_ID)
-      .eq('status', 'claimed')
-      .select()
-
-    if (submitError || data.length === 0) {
-      console.error('Could not submit task:', submitError)
+    // The server only submits the task if it is still 'claimed'.
+    const ok = await callServer(id, 'submit')
+    if (!ok) {
       setError('Could not submit the task')
       return
     }
