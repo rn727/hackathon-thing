@@ -120,7 +120,7 @@ export default function ChildDashboard() {
           <button className="logout-button">Log Out</button>
         </Link>
 
-        <h1>Kid Dashboard</h1>
+        <h1>TaskPay · Child</h1>
       </div>
 
       {error && <div className="p-alert">{error}</div>}

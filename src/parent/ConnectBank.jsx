@@ -92,7 +92,7 @@ export default function ConnectBank({ onSynced }) {
       await loadAccounts()
     } catch (err) {
       console.error("Could not save the kid's account:", err)
-      setStatus("Could not save the kid's account.")
+      setStatus("Could not save the child's account.")
     }
     setSaving(false)
   }
@@ -137,7 +137,7 @@ export default function ConnectBank({ onSynced }) {
       {linked && accounts.length > 0 && (
         <>
           <p className="p-field-label">
-            Which account is the kid's? Spending on it counts towards the kid's balance.
+            Which account is the child's? Spending on it counts towards the child's balance.
           </p>
           {accounts.map((account) => (
             <label key={account.id} className="p-radio">
