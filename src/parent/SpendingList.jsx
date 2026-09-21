@@ -3,14 +3,18 @@ import { supabase } from '../lib/supabaseClient.js'
 import ShowMoreButton from './ShowMoreButton.jsx'
 import { PAGE_SIZE } from './taskUtils.js'
 
+const API = 'http://localhost:8000/api'
+
 // Bank spending synced from Plaid. Task rewards live in the same table, so this
 // reads only source = 'plaid'. Money coming in is stored positive (a refund, a
 // paycheck), and a spending list shows money going out, so only negative rows.
-// Bump `reloadKey` to load the list again after a sync.
-export default function SpendingList({ reloadKey }) {
+export default function SpendingList() {
   const [spending, setSpending] = useState([])
   const [error, setError] = useState('')
   const [shown, setShown] = useState(PAGE_SIZE)
+  const [syncing, setSyncing] = useState(false)
+
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     async function loadSpending() {
@@ -32,9 +36,29 @@ export default function SpendingList({ reloadKey }) {
     loadSpending()
   }, [reloadKey])
 
+  // Pulls the linked bank's latest transactions into Supabase, then reloads the list.
+  async function refresh() {
+    setSyncing(true)
+    try {
+      const response = await fetch(`${API}/plaid-sync`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || `Server said ${response.status}`)
+      setReloadKey((n) => n + 1)
+    } catch (err) {
+      console.error('Could not refresh the bank data:', err)
+      setError(err.message || 'Could not refresh the bank data.')
+    }
+    setSyncing(false)
+  }
+
   return (
     <section className="p-card">
-      <h2>Recent spending</h2>
+      <div className="p-card-head">
+        <h2>Recent spending</h2>
+        <button type="button" disabled={syncing} onClick={refresh}>
+          {syncing ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
       {error && <p className="p-muted p-small">{error}</p>}
       {!error && spending.length === 0 && (
         <p className="p-muted p-small">No bank spending yet. Connect a bank and press Refresh.</p>

@@ -4,14 +4,13 @@ const API = 'http://localhost:8000/api'
 
 // Plaid Link (Sandbox). The server exchanges the public token and stores the
 // access token in Supabase, so the browser never sees the access token.
-export default function ConnectBank({ onSynced }) {
+export default function ConnectBank() {
   const [linked, setLinked] = useState(false)
   const [checking, setChecking] = useState(true)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
   const [accounts, setAccounts] = useState([])
   const [saving, setSaving] = useState(false)
-  const [syncing, setSyncing] = useState(false)
 
   async function loadAccounts() {
     try {
@@ -97,24 +96,6 @@ export default function ConnectBank({ onSynced }) {
     setSaving(false)
   }
 
-  // Pulls the bank's latest transactions and balances into Supabase.
-  async function syncNow() {
-    setSyncing(true)
-    setStatus('')
-    try {
-      const response = await fetch(`${API}/plaid-sync`, { method: 'POST' })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || `Server said ${response.status}`)
-      setStatus(`Saved ${data.stored} transaction${data.stored === 1 ? '' : 's'}.`)
-      await loadAccounts()
-      onSynced?.()
-    } catch (err) {
-      console.error('Could not refresh the bank data:', err)
-      setStatus(err.message || 'Could not refresh the bank data.')
-    }
-    setSyncing(false)
-  }
-
   const kidAccount = accounts.find((a) => a.kid_id !== null)
 
   return (
@@ -156,16 +137,13 @@ export default function ConnectBank({ onSynced }) {
               </span>
             </label>
           ))}
-          <div className="p-actions">
-            <button type="button" className="p-primary" disabled={syncing || saving} onClick={syncNow}>
-              {syncing ? 'Refreshing...' : 'Refresh'}
-            </button>
-            {kidAccount && (
-              <button type="button" className="p-redo" disabled={saving || syncing} onClick={() => chooseKidAccount(null)}>
+          {kidAccount && (
+            <div className="p-actions">
+              <button type="button" className="p-redo" disabled={saving} onClick={() => chooseKidAccount(null)}>
                 Clear
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </>
       )}
 
