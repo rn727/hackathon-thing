@@ -36,7 +36,62 @@ Priority order:
 5. Integrate Plaid into the dashboard.
 6. Add polish only after the above is stable.
 
+All six priorities above are now in place. See **Current State** for what exists today.
+
 Do not sacrifice a working demo for architecture, abstraction, or extra features.
+
+---
+
+## Current State
+
+The core task loop, Supabase persistence and Plaid Sandbox all work. Treat this as a
+baseline to preserve, not as a greenfield.
+
+### Architecture
+
+Two processes:
+
+- **Frontend** (Vite + React, port 5173) reads from Supabase directly, with the publishable key.
+- **Server** (Express, port 8000) does every create / update / delete, with the Supabase
+  secret key. It is also the only place that talks to Plaid.
+
+This split matters. Money-changing writes go through the server so they can be validated
+there. Do not move approve / claim / submit into the browser.
+
+### Screens
+
+- `/` - `src/Home.jsx`, role selector
+- `/parent` - `src/parent/ParentDashboard.jsx`, balance, create task, approvals, task list, bank, spending
+- `/kid` - `src/kid/KidDashboard.jsx`, balance, available tasks, claimed tasks, spending
+
+### Server routes
+
+All under `http://localhost:8000`.
+
+- `POST /api/tasks` - create a task
+- `DELETE /api/tasks/:id` - delete an `available` or `claimed` task
+- `POST /api/tasks/:id/claim` - `available` to `claimed`
+- `POST /api/tasks/:id/submit` - `claimed` to `submitted`
+- `POST /api/tasks/:id/redo` - `submitted` back to `claimed`
+- `POST /api/tasks/:id/reject` - `submitted` to `rejected`
+- `POST /api/tasks/:id/approve` - `submitted` to `approved`, and pays the reward
+- `POST /api/create-link-token` - Plaid Link token
+- `POST /api/exchange-public-token` - store the Plaid access token server side
+- `GET /api/plaid-status` - is a bank linked?
+- `GET /api/plaid-accounts` - linked accounts, and which one is the kid's
+- `PUT /api/kid-account` - mark one account as the kid's, or clear the choice
+- `POST /api/plaid-sync` - pull the bank's transactions into Supabase
+
+Every status move returns `409` when the task is not in the status it expects. That guard is
+what stops a second approve from paying the same reward twice. Keep it.
+
+### Prototype shortcuts to know about
+
+- One parent and one kid. The server looks each of them up by `role`.
+- The kid screen is hardcoded to `users.id = 2` (`KID_ID` in `src/kid/KidDashboard.jsx`).
+- No login. The role selector only routes.
+- `.parent-page` is a fixed-width column (`width: 100%`, `max-width: 480px`). Its width must
+  never depend on its contents, or the whole page resizes as tasks are added and cleared.
 
 ---
 
@@ -47,6 +102,7 @@ Use the existing project stack whenever possible.
 Preferred technologies:
 
 - React
+- React Router (`react-router-dom`)
 - Vite
 - JavaScript
 - CSS
@@ -211,10 +267,10 @@ Expected flow:
 available
    |
    v
-claimed
-   |
-   v
-submitted
+claimed <------+
+   |           |
+   v           | redo
+submitted -----+
    |
    +------> rejected
    |
@@ -260,10 +316,38 @@ Do not invent columns that are not listed here.
 
 ### transactions
 
+Holds two kinds of row, told apart by `source`: approved task rewards, and bank spending
+synced from Plaid.
+
 - `id`
-- `amount`
+- `amount` - money in is positive, money out is negative, so a purchase is stored negative
 - `created_at`
-- `kid_id`
+- `kid_id` - NOT NULL
+- `name` - merchant name; Plaid rows only
+- `source` - `plaid` on synced bank rows
+- `pending` - Plaid rows only
+- `plaid_transaction_id` - unique; the sync upserts on it, so a repeat run never duplicates
+- `plaid_account_id` - the `plaid_accounts` row the spending came from
+
+### plaid_items
+
+One linked bank. The access token stays server side and is never sent to the browser.
+
+- `id`
+- `parent_id`
+- `plaid_item_id` - unique; the exchange upserts on it
+- `access_token`
+
+### plaid_accounts
+
+The accounts inside a linked bank. Unique on (`item_id`, `plaid_account_id`).
+
+- `id`
+- `item_id`
+- `plaid_account_id`
+- `name`
+- `current_balance`
+- `kid_id` - set on the one account the parent marked as the kid's, otherwise null
 
 ### Relationships
 
@@ -271,8 +355,16 @@ Do not invent columns that are not listed here.
 users (role = 'kid')
   |
   +-- tasks.kid_id
-  |
   +-- transactions.kid_id
+  +-- plaid_accounts.kid_id
+
+users (role = 'parent')
+  |
+  +-- plaid_items.parent_id
+        |
+        +-- plaid_accounts.item_id
+              |
+              +-- transactions.plaid_account_id
 ```
 
 ### Approval writes
@@ -293,9 +385,9 @@ Do not redesign the schema. If a feature seems to need a new column, say so and 
 
 Authentication is not the first priority.
 
-If the project already has working authentication, preserve it.
-
-If not, a simple hackathon demo role selector is acceptable:
+There is no login. `src/Home.jsx` is a role selector that routes to `/parent` or `/kid`, and
+the server identifies the single parent and the single kid by `users.role`. That is the
+accepted hackathon answer here; do not replace it with real auth unless asked.
 
 ```text
 Choose account
@@ -322,19 +414,19 @@ Plaid should be treated as an isolated integration.
 
 The task/reward system must continue working even if Plaid fails.
 
-Recommended structure:
+This is already built and isolated that way:
 
 ```text
-Core app
-- tasks
-- approvals
-- balance
-
-Plaid
-- connect Sandbox account
-- retrieve simulated transactions
-- display spending
+Core app                     Plaid (server/plaid.js, server/plaidSync.js)
+- tasks                      - connect a Sandbox account through Plaid Link
+- approvals                  - store the access token in plaid_items
+- balance                    - sync transactions into the transactions table
+                             - display spending (SpendingList)
 ```
+
+`ConnectBank` opens Plaid Link in the browser, but only ever handles a public token. The
+server exchanges it and keeps the access token. The parent then marks one linked account as
+the kid's, and only that account's spending is stored.
 
 Use Plaid Sandbox.
 
@@ -362,25 +454,29 @@ Never commit secrets.
 
 Sensitive values belong in environment variables.
 
-Examples:
+There are two env files, and both already have a committed `.env.example`. These are the
+variables the code actually reads; do not invent others.
+
+`.env` in the project root, read by the frontend (and by the server for the Supabase URL):
 
 ```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+```
+
+`server/.env`, read only by the server:
+
+```text
+PORT
+SUPABASE_SECRET_KEY
 PLAID_CLIENT_ID
 PLAID_SECRET
-SUPABASE_SERVICE_ROLE_KEY
-DATABASE_URL
 ```
 
-Commit a `.env.example` with placeholders if useful.
+Anything prefixed `VITE_` is bundled into the frontend and is public. The Supabase secret key
+and the Plaid credentials must never get a `VITE_` prefix.
 
-Example:
-
-```text
-PLAID_CLIENT_ID=your_client_id_here
-PLAID_SECRET=your_sandbox_secret_here
-```
-
-Do not include real credentials.
+Do not include real credentials in `.env.example`.
 
 ---
 
@@ -421,6 +517,8 @@ Avoid ambiguous controls.
 
 ### Must Have
 
+All of these are done. Do not regress them.
+
 - parent view
 - kid view
 - create task
@@ -433,8 +531,8 @@ Avoid ambiguous controls.
 
 ### Strong Nice-to-Have
 
-- Supabase persistence
-- Plaid Sandbox transactions
+Supabase persistence and Plaid Sandbox transactions are done. Still open:
+
 - photo proof
 - spending categories
 - progress bar
@@ -672,13 +770,14 @@ A reliable working prototype is the priority.
 Build this project in layers:
 
 ```text
-Layer 1: Working UI with mock data
-Layer 2: Core task flow
-Layer 3: Supabase persistence
-Layer 4: Plaid Sandbox
-Layer 5: Polish
+Layer 1: Working UI with mock data      done
+Layer 2: Core task flow                 done
+Layer 3: Supabase persistence           done
+Layer 4: Plaid Sandbox                  done
+Layer 5: Polish                         current
 ```
 
-Do not skip directly to Layer 5.
+Layers 1 to 4 are in place, so polish is now the right layer to work in. Polish must not
+break the layers underneath it.
 
 The best contribution is usually the smallest change that makes the current demo more complete, stable, or understandable.

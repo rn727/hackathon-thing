@@ -33,4 +33,7 @@
    squeezing the task title. */
 .kid-page .p-task-row { flex-wrap: wrap; }
 .kid-page .p-task-row > div { flex: 1 1 55%; min-width: 0; }
-.kid-page button.kid-action { flex: 1 1 auto; }
+/* Fixed basis, not auto: an auto basis sizes the button to its label, so the
+   task title beside it jumps every time the label changes (Claim Task ->
+   Claiming... -> Mark Complete). */
+.kid-page button.kid-action { flex: 1 1 132px; }

@@ -1,7 +1,7 @@
 // Small helpers shared by the parent components.
 
 // 45 -> "45 min", 90 -> "1 h 30 min", 120 -> "2 h"
-export function formatDuration(minutes) {
+function formatDuration(minutes) {
   if (minutes < 60) return `${minutes} min`
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
