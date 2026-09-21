@@ -53,47 +53,6 @@ async function saveItem(parentId, publicToken) {
   return item.id;
 }
 
-// Pulls everything Plaid has for one item since the stored cursor and applies it.
-async function syncItem(itemId) {
-  const { data: item, error } = await supabaseAdmin
-    .from("plaid_items")
-    .select("id, access_token, sync_cursor")
-    .eq("id", itemId)
-    .single();
-  if (error) throw error;
-
-  let cursor = item.sync_cursor || undefined;
-  const added = [];
-  const modified = [];
-  const removed = [];
-
-  let hasMore = true;
-  while (hasMore) {
-    const { data } = await plaidClient.transactionsSync({
-      access_token: item.access_token,
-      cursor,
-    });
-    added.push(...data.added.map(toRow));
-    modified.push(...data.modified.map(toRow));
-    removed.push(...data.removed.map((t) => t.transaction_id));
-    cursor = data.next_cursor;
-    hasMore = data.has_more;
-  }
-
-  // ponytail: the whole sync is buffered and applied in one call. Fine for a
-  // sandbox account; apply page by page if an item ever has a long history.
-  const { data: result, error: applyError } = await supabaseAdmin.rpc("plaid_apply_transactions", {
-    p_item_id: item.id,
-    p_added: added,
-    p_modified: modified,
-    p_removed: removed,
-    p_cursor: cursor,
-  });
-  if (applyError) throw applyError;
-
-  return { itemId: item.id, added: added.length, modified: modified.length, removed: removed.length, ...result };
-}
-
 // Reads one item's transactions straight from Plaid, without storing them. A null
 // cursor returns the whole history as `added`, so nothing else has to be merged.
 async function fetchTransactions(itemId) {
@@ -194,10 +153,4 @@ async function storeTransactions(itemId) {
   return { stored: rows.length, balances };
 }
 
-async function syncAll() {
-  const { data, error } = await supabaseAdmin.from("plaid_items").select("id");
-  if (error) throw error;
-  return Promise.all(data.map((item) => syncItem(item.id)));
-}
-
-module.exports = { saveItem, syncItem, syncAll, fetchTransactions, storeTransactions, refreshBalances, toRow };
+module.exports = { saveItem, storeTransactions };

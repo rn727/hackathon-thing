@@ -1,14 +1,5 @@
 /* Everything here is scoped to .parent-page so it cannot clash with other pages' CSS. */
 
-/* The kid page shares this class, so the global rule stays as it was. */
-.dashboard-header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
 .parent-page {
   /* The page is light-only, so form controls must not pick up the OS dark palette
      (it made dropdown options white on white). */
@@ -29,6 +20,9 @@
   --p-bad-bg: #fef3f2;
 
   box-sizing: border-box;
+  /* Explicit width: the page must never size itself from its contents, or
+     adding a task / emptying a list changes how wide the whole screen is. */
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
   padding: 20px 16px 56px;
@@ -47,6 +41,7 @@
 
 /* Header: title on the left, Log Out on the right (the button comes first in the markup). */
 .parent-page .dashboard-header {
+  display: flex;
   flex-direction: row-reverse;
   align-items: center;
   justify-content: space-between;
@@ -57,7 +52,9 @@
 .parent-page h2 { font-size: .95rem; font-weight: 650; margin: 0 0 12px; color: var(--p-ink); }
 .parent-page .p-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .parent-page .p-card-head h2 { margin: 0; }
-.parent-page .p-card-head select { width: auto; max-width: 55%; margin: 0; font-size: .85rem; padding: 7px 28px 7px 10px; }
+/* Fixed width, not auto: the option labels carry live counts, so an auto-sized
+   select gets wider the moment a count gains a digit. */
+.parent-page .p-card-head select { width: 10rem; max-width: 55%; margin: 0; font-size: .85rem; padding: 7px 28px 7px 10px; }
 /* Chrome/Edge only: opt the filter select into the customizable picker so the list
    always drops below the button. Other browsers keep the native popup. */
 @supports (appearance: base-select) {
@@ -181,7 +178,6 @@
 .parent-page button.p-reject { color: var(--p-bad); background: var(--p-bad-bg); border: 1px solid #fecdca; }
 .parent-page button.p-reject:hover:not(:disabled) { background: #fee4e2; }
 .parent-page .p-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.parent-page .p-actions button.p-primary { width: auto; flex: 1; }
 .parent-page button.p-icon { width: 30px; height: 30px; flex-shrink: 0; padding: 0; font-size: .95rem; line-height: 1; }
 .parent-page button.p-delete { color: var(--p-muted); background: #fff; border: 1px solid var(--p-line); }
 .parent-page button.p-delete:hover:not(:disabled) { color: var(--p-bad); background: var(--p-bad-bg); border-color: #fecdca; }
@@ -199,8 +195,6 @@
 .parent-page .p-muted { margin: 0; color: var(--p-muted); font-weight: 400; }
 .parent-page .p-small { font-size: .8rem; }
 .parent-page .p-due { display: block; margin-top: 2px; font-size: .78rem; font-weight: 400; color: var(--p-muted); }
-
-/* Filter tabs */
 
 /* Status badges */
 .parent-page .p-badge { padding: 3px 10px; font-size: .72rem; font-weight: 600; color: var(--p-text); background: #f2f4f7; border-radius: 999px; }
@@ -225,9 +219,6 @@
    Every screen uses .parent-page, so the phone sizing lives here once. */
 
 .parent-page {
-  /* Fill the screen. A fixed column left a narrow band with a different colour
-     down each side on wider phones. */
-  max-width: none;
   /* 100vh is taller than the visible area while the browser's address bar is
      showing, which pushes the bottom of the page out of reach. */
   min-height: 100dvh;
