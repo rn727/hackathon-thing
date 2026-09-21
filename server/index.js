@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 const plaidClient = require("./plaid");
 const tasksRouter = require("./tasks");
-const { saveItem, fetchTransactions, storeTransactions } = require("./plaidSync");
+const { saveItem, storeTransactions } = require("./plaidSync");
 const { supabaseAdmin } = require("./supabaseAdmin");
 
 app.use(cors());
@@ -136,42 +136,6 @@ app.put("/api/kid-account", async (req, res) => {
     console.error("Error saving the kid's account: ", error);
 
     res.status(500).json({ error: "Could not save the kid's account" });
-  }
-});
-
-// Spending for the linked bank, read live from Plaid. kid_id is set on the rows
-// that belong to the account the parent designated as the kid's, so the frontend
-// can split the kid's spending from the rest of the family's.
-// Amounts follow the app's convention: a purchase is negative, money in is positive.
-app.get("/api/transactions", async (req, res) => {
-  try {
-    const { data: item, error } = await supabaseAdmin
-      .from("plaid_items").select("id").order("id").limit(1).maybeSingle();
-    if (error) throw error;
-    if (!item) return res.json([]);
-
-    const { data: accounts, error: accountsError } = await supabaseAdmin
-      .from("plaid_accounts").select("plaid_account_id, name, kid_id").eq("item_id", item.id);
-    if (accountsError) throw accountsError;
-
-    const byAccount = new Map(accounts.map((a) => [a.plaid_account_id, a]));
-    const rows = await fetchTransactions(item.id);
-
-    res.json(rows.map((row) => ({
-      ...row,
-      kid_id: byAccount.get(row.account_id)?.kid_id ?? null,
-      account_name: byAccount.get(row.account_id)?.name ?? null,
-    })));
-  }
-  catch (error) {
-    console.error("Error loading transactions: ", error.response?.data || error);
-
-    // Plaid needs a moment after Link before transactions exist.
-    if (error.response?.data?.error_code === "PRODUCT_NOT_READY") {
-      return res.status(503).json({ error: "Plaid is still preparing this account. Try again in a moment." });
-    }
-
-    res.status(500).json({ error: "Could not load transactions" });
   }
 });
 
